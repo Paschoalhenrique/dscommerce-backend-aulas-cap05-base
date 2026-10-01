@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,7 +24,7 @@ import org.springframework.web.filter.CorsFilter;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-public class ResourceServerConfig {
+public class ResourceServerConfig  {
 
 	@Value("${cors.origins}")
 	private String corsOrigins;
@@ -43,8 +42,18 @@ public class ResourceServerConfig {
 	@Order(3)
 	SecurityFilterChain rsSecurityFilterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable());
-		http.authorizeHttpRequests((authorize) -> authorize.anyRequest().permitAll());
-		http.oauth2ResourceServer(oauth2ResourceServer -> oauth2ResourceServer.jwt(Customizer.withDefaults()));
+
+		http.authorizeHttpRequests(authorize -> authorize
+				// Endpoints públicos
+				.requestMatchers(org.springframework.http.HttpMethod.GET, "/products/**").permitAll()
+				// Demais endpoints exigem autenticação
+				.anyRequest().authenticated()
+		);
+
+		http.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt ->
+				jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
+		));
+
 		http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 		return http.build();
 	}
@@ -62,7 +71,6 @@ public class ResourceServerConfig {
 
 	@Bean
 	CorsConfigurationSource corsConfigurationSource() {
-
 		String[] origins = corsOrigins.split(",");
 
 		CorsConfiguration corsConfig = new CorsConfiguration();
