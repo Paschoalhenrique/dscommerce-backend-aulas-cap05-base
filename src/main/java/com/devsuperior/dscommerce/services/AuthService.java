@@ -1,21 +1,30 @@
 package com.devsuperior.dscommerce.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import com.devsuperior.dscommerce.dto.TokenDTO;
+import com.devsuperior.dscommerce.config.JwtTokenUtil; // IMPORT CORRETO
 
-import com.devsuperior.dscommerce.entities.User;
-import com.devsuperior.dscommerce.services.exceptions.ForbiddenException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
 
 	@Autowired
-	private UserService userService;
-	
-	public void validateSelfOrAdmin(long userId) {
-		User me = userService.authenticated();
-		if (!me.hasRole("ROLE_ADMIN") && !me.getId().equals(userId)) {
-			throw new ForbiddenException("Access denied");
-		}
+	private AuthenticationManager authenticationManager;
+
+	@Autowired
+	private JwtTokenUtil jwtTokenUtil; // injeta o utilitário
+
+	public TokenDTO authenticate(String username, String password) {
+		Authentication authentication = authenticationManager.authenticate(
+				new UsernamePasswordAuthenticationToken(username, password)
+		);
+
+		String token = jwtTokenUtil.generateToken(authentication);
+
+		return new TokenDTO(token);
 	}
 }
