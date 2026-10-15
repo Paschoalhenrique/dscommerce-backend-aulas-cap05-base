@@ -2,17 +2,14 @@ package com.devsuperior.dscommerce.services;
 
 import java.time.Instant;
 
+import com.devsuperior.dscommerce.dto.PaymentDTO;
+import com.devsuperior.dscommerce.entities.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.devsuperior.dscommerce.dto.OrderDTO;
 import com.devsuperior.dscommerce.dto.OrderItemDTO;
-import com.devsuperior.dscommerce.entities.Order;
-import com.devsuperior.dscommerce.entities.OrderItem;
-import com.devsuperior.dscommerce.entities.OrderStatus;
-import com.devsuperior.dscommerce.entities.Product;
-import com.devsuperior.dscommerce.entities.User;
 import com.devsuperior.dscommerce.repositories.OrderItemRepository;
 import com.devsuperior.dscommerce.repositories.OrderRepository;
 import com.devsuperior.dscommerce.repositories.ProductRepository;
@@ -61,8 +58,23 @@ public class OrderService {
         }
 
         repository.save(order);
-        orderItemRepository.saveAll(order.getItems()); // manter se não houver cascade
+        orderItemRepository.saveAll(order.getItems());
 
+        return new OrderDTO(order);
+    }
+
+    @Transactional
+    public OrderDTO setPayment(Long orderId, PaymentDTO dto) {
+        Order order = repository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido não encontrado"));
+
+        authService.validateSelfOrAdmin(order.getClient().getId());
+
+        Payment payment = new Payment(null, dto.getMoment(), order);
+        order.setPayment(payment);
+        order.setStatus(OrderStatus.PAID);
+
+        order = repository.save(order);
         return new OrderDTO(order);
     }
 }
